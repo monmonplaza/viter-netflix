@@ -7,8 +7,72 @@ import MoviesModalView from './MoviesModalView'
 import MoviesModalAdd from './MoviesModalAdd'
 import NoData from '@/components/partials/icons/NoData'
 import ServerError from '@/components/partials/icons/ServerError'
+import useQueryData from '@/components/custom-hook/useQueryData'
+import ModalDelete from '@/components/partials/modals/ModalDelete'
+import ModalConfirm from '@/components/partials/modals/ModalConfirm'
+import ToastSuccess from '@/components/partials/ToastSuccess'
+import ModalValidate from '@/components/partials/modals/ModalValidate'
 
 const MoviesTable = () => {
+  const [isConfirm, setIsConfirm] = React.useState(false); //Show/Hide nang modalConfirm
+  const [isDelete, setIsDelete] = React.useState(false); //Show/Hide nang modalDelete
+  const [isSuccess, setIsSuccess] = React.useState(false); //Show/Hide nang toastSuccess
+  const [isValidate, setIsValidate] = React.useState(false)
+  const [message, setMessage] = React.useState('')
+  const [id, setId] = React.useState(null);
+  const [isActive, setIsActive] = React.useState(0);
+  
+  const [isAdd, setIsAdd] = React.useState(false); //Show/Hide nang ModalAdd
+  const [isView, setIsView] = React.useState(false); //Show/Hide nang ModalView
+  const [itemEdit, setItemEdit] = React.useState(null);
+  let counter = 0
+  const {
+    isLoading,
+    isFetching,
+    error,
+    data: result,
+  } = useQueryData (
+   `/v1/movies`, // endpoint
+   "get", // method
+    "movies",
+  );
+
+
+  const handleAdd = () => {
+    setIsAdd(true)
+    setItemEdit(null)
+  }
+
+
+  const handleEdit = (item) => {
+    setIsAdd(true)
+    setItemEdit(item)
+  }
+
+
+  const handleDelete = () => {
+    setIsDelete(true)
+  }
+  
+
+  const handleArchive = (item) => {
+    setIsConfirm(true)
+    setIsActive(0);
+    setId(item.movies_aid)
+  }
+
+  const handleRestore = (item) => {
+    setIsConfirm(true)
+    setIsActive(1);
+    setId(item.movies_aid)
+  }
+
+  const handleView = (item) => {
+    setIsView(true)
+    setItemEdit(item)
+  }
+
+
   return (
     <>
     <div className='p-4 m-4'>
@@ -19,11 +83,11 @@ const MoviesTable = () => {
               <Search className='absolute top-2 left-1.5 opacity-25' size={20}/>
             </div>
           </form>
-          <button className='btn btn-accent'><Plus size={14}/> Add New</button>
+          <button className='btn btn-accent' onClick={handleAdd}><Plus size={14}/> Add New</button>
         </div>
 
         <div className="table_wrapper bg-primary p-4 mt-5 rounded-md relative">
-        {/* <SpinnerTable/> */}
+        {!isLoading || isFetching &&   <SpinnerTable/>}
           <table>
             <thead>
               <tr>
@@ -36,48 +100,95 @@ const MoviesTable = () => {
             </thead>
 
             <tbody>
-              <tr>
-                <td colSpan="100%">
-                 <NoData/>
-                </td>
-              </tr>
 
-              <tr>
+            {((isLoading && !isFetching) || result?.data.length === 0) && (
+                <tr>
+                  <td colSpan="100%">
+                    {isLoading ? (
+                      <LoaderTable count={30} cols={6} />
+                    ) : (
+                      <NoData />
+                    )}
+                  </td>
+                </tr>
+              )} 
+            
+
+            {error && ( 
+               <tr>
                 <td colSpan="100%">
                  <ServerError/>
                 </td>
               </tr>
-
-              <tr>
-                <td colSpan="100%">
-                  <LoaderTable count = {22} cols = {5}/>
-                </td>
-              </tr>
-              <tr>
-                <td>1. </td>
-                <td>Tarzan - Ganda Lalake </td>
-                <td>1992 </td>
-                <td><Pill/> </td>
+            ) }
+            
+            {result?.data.map((item, key) => {
+              counter++
+              return(
+                <tr key={key}>
+                <td>{counter}. </td>
+                <td>{item.movies_title}</td>
+                <td>{item.movies_year} </td>
+                <td><Pill isActive={item.movies_is_active}/> </td>
                 <td>
                     <ul className='table-action'>
-                      <li><button data-tooltip="View"><FileVideo size={15}/></button></li>  
-                      <li><button data-tooltip="Edit"><Pencil size={15}/></button></li>  
-                      <li><button data-tooltip="Archive"><Archive size={15}/></button></li>  
-                      <li><button data-tooltip="Restore"><ArchiveRestore size={15}/></button></li>  
-                      <li><button data-tooltip="Delete"><Trash size={15}/></button></li>  
+                      {item.movies_is_active ? 
+                      <>
+                        <li><button data-tooltip="View" onClick={() => handleView(item)}><FileVideo size={15}/></button></li>  
+                        <li><button data-tooltip="Edit" onClick={() => handleEdit(item)}><Pencil size={15}/></button></li>  
+                        
+                        <li><button data-tooltip="Archive" onClick={() => handleArchive(item)}>
+                          <Archive size={15}/>
+                        </button></li> 
+                      </>
+                       :
+                        <>
+                       <li><button data-tooltip="Restore" onClick={() => handleRestore(item)}>
+                        <ArchiveRestore size={15}/></button></li>  
+                       <li><button data-tooltip="Delete" onClick={() => handleDelete()}><Trash size={15}/></button></li> 
+                       </>
+                      }
                     </ul>  
                 </td>
               </tr>
+              )
+            })}
+           
              
             </tbody>
           </table>
         </div>
       </div>
 
-    {/* <MoviesModalView/> */}
-    <MoviesModalAdd/>
+    {isConfirm && 
+      < ModalConfirm 
+          setIsConfirm={setIsConfirm} 
+          queryKey="movies"
+          mysqlApiArchive ={`/v1/movies/active/${id}`}
+          active={isActive}
+          setIsSuccess={setIsSuccess}
+      />
+    }
 
-    </>
+    {isDelete && <ModalDelete
+      setIsDelete={setIsDelete}
+      mysqlApiDelete ={`/v1/movies/${id}`}
+      queryKey="movies"
+      setIsSuccess={setIsSuccess}
+    />
+    }
+
+{isAdd && <MoviesModalAdd
+ setIsAdd={setIsAdd}
+ setIsSuccess={setIsSuccess}
+ itemEdit={itemEdit}
+ setIsValidate={setIsValidate}
+ setMessage={setMessage}
+ />}
+{isView && <MoviesModalView itemEdit={itemEdit} setIsView={setIsView}/>}
+{isSuccess && <ToastSuccess setIsSuccess={setIsSuccess}/>}
+{isValidate && <ModalValidate setIsValidate={setIsValidate} message={message}/>}
+  </>
   )
 }
 

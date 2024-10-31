@@ -1,9 +1,26 @@
 import React from 'react'
 import { Archive, ArchiveRestore, Pencil,  Trash } from 'lucide-react'
+import useQueryData from '@/components/custom-hook/useQueryData';
+import SpinnerTable from '@/components/partials/spinners/SpinnerTable';
 
 const CategoryTable = ({isAdd}) => {
+  let counter = 0
+  const {
+    isLoading,
+    isFetching,
+    error,
+    data: result,
+  } = useQueryData (
+   `/v1/genre`, // endpoint
+   "get", // method
+    "genre",
+  );
+
+
   return (
     <div className={`table_wrapper bg-primary p-4 mt-5 rounded-md ${isAdd ? "opacity-40 pointer-events-none" : ""}`}>
+            {!isLoading || isFetching &&   <SpinnerTable/>}
+
     <table>
       <thead>
         <tr>

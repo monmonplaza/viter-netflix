@@ -1,6 +1,45 @@
+import { queryData } from '@/components/helpers/queryData';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import React from 'react'
 
-const GenereAddForm = ({setIsAdd}) => {
+const GenereAddForm = ({setIsAdd, setIsSuccess, itemEdit, setIsValidate, setMessage}) => {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (values) =>
+      queryData(
+        itemEdit ? `/v1/genre/${itemEdit.genre_aid}` :`/v1/genre`,
+        itemEdit ? "put" : "post",
+        values
+      ),
+    onSuccess: (data) => {
+      // Invalidate and refetch
+      queryClient.invalidateQueries({
+        queryKey: ["genre"],
+      });
+
+      // show error box
+      if (data.success) {
+        setIsAdd(false)
+        setIsSuccess(true)
+      } else {
+        setIsValidate(true)
+        setMessage(data.error)
+       
+      }
+    },
+  });
+
+  const initVal = {
+    genre_title: itemEdit ? itemEdit.genre_title : '',
+    genre_title_old: itemEdit ? itemEdit.genre_title : '',
+  }
+
+
+  const yupSchema = Yup.object({
+    genre_title: Yup.string().required('Required'),
+  
+  })
+
   return (
     <div className='my-3'>
         <form action="" className='max-w-[250px] '>

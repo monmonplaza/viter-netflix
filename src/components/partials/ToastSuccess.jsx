@@ -1,7 +1,15 @@
 import { CheckCircle, X } from 'lucide-react'
 import React from 'react'
 
-const ToastSuccess = () => {
+const ToastSuccess = ({setIsSuccess}) => {
+
+  const handleClose = () => setIsSuccess(false)
+
+  React.useEffect(()=> {
+    setTimeout(() => {
+      handleClose()
+    }, 2000)
+  })
   return (
     <div className='fixed top-5 left-1/2 -translate-x-1/2  bg-secondary max-w-[240px] w-full overflow-hidden rounded-md shadow-md border-success border'>
         <div className="flex items-center r">
@@ -11,7 +19,7 @@ const ToastSuccess = () => {
 
             <p className='basis-[80%] p-2 mb-0'>Record Successfully Updated!</p>
 
-            <button className='basis-[10%]'><X size={14}/></button>
+            <button className='basis-[10%]' onClick={handleClose}><X size={14}/></button>
         </div>
 
     </div>
